@@ -12,3 +12,9 @@ logs
 results
 
 npm-debug.log
+
+*.zip
+
+test-results
+src/admin
+src/store/node_modules
