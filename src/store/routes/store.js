@@ -4,7 +4,8 @@
  */
 
 var redis = require("redis");
-var hash = require('node_hash');
+
+var documents = require("../lib/documents");
 
 
 var client = redis.createClient();
@@ -38,34 +39,41 @@ exports.savedoc = function(req, res)
     {
         console.log("Received JSON document '%s' [typeof '%s']", doc, typeof(doc));
         
-        var doc_sha1 = hash.sha1(doc);
-        var doc_obj = JSON.parse(doc);
+        var metadata = new documents.Metadata(doc);
+        document = new documents.Document(metadata, JSON.parse(doc));
         
-        doc_obj.id = doc_sha1;
-        
-        client.set(doc_sha1, doc);
-        
-        SAVEDOC_SUCCESS.doc_id = doc_obj.id;
-        
-        // Answer early and then add tags
-        res.send(SAVEDOC_SUCCESS);
-        
-        console.log("Saved document with ID '%s'", doc_sha1);
+        SAVEDOC_SUCCESS.doc_id = document.metadata.id;
         
         
         if (tags)
         {
             tags_list = JSON.parse(tags);
+            
+            document.metadata.tags = tags_list;
+            
+            client.set(document.metadata.id, document.asString());
+            
+            // Answer early and then add tags
+            res.send(SAVEDOC_SUCCESS);
+            
         
             tags_list.forEach(function(tag, index)
             {
-                console.log("Adding doc with ID '%s' to set '%s'",doc_obj.id , tag);
+                console.log("Adding doc with ID '%s' to set '%s'",document.metadata.id , tag);
                 
                 // Associate the doc_id with each one of them:
-                client.sadd(tag, doc_obj.id);
+                client.sadd(tag, document.metadata.id);
             });
         }
-        // else no error: tags are optional
+        else
+        {
+            // no error: tags are optional
+            client.set(document.metadata.id, document.asString());
+            
+            res.send(SAVEDOC_SUCCESS);
+        }
+        
+        console.log("Saved document '%s'", document.asString());
     }
     else
     {
@@ -215,10 +223,18 @@ exports.getdocs = function(req, res)
                     else if (err)
                     {
                         console.log("error retrieving doc: %s", err);
+                        
+                        GETDOCS_ERROR.cause = err;
+                
+                        res.send(GETDOCS_ERROR);
                     }
                     else
                     {
                         console.log("reply was undefined");
+                        
+                        GETDOCS_ERROR.cause = "not_found";
+                
+                        res.send(GETDOCS_ERROR);
                     }
                 });
             }
