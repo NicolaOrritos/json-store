@@ -208,14 +208,17 @@ exports.getdocs = function(req, res)
                     {
                         reply.forEach(function(doc_str, position)
                         {
-                            var doc = JSON.parse(doc_str);
-                            
-                            console.log("saving doc_id '%s'", doc.id);
-                            console.log("with doc_str '%s'", doc_str);
-                            console.log("(position is '%d')", position);
-                            
-                            GETDOCS_SUCCESS.docs_ids[position] = doc.id;
-                            GETDOCS_SUCCESS.docs[doc.id] = doc;
+                            if (doc_str)
+                            {
+                                var doc = JSON.parse(doc_str);
+                                
+                                console.log("saving doc_id '%s'", doc.metadata.id);
+                                console.log("with doc_str '%s'", doc_str);
+                                console.log("(position is '%d')", position);
+                                
+                                GETDOCS_SUCCESS.docs_ids[position] = doc.metadata.id;
+                                GETDOCS_SUCCESS.docs[doc.metadata.id] = doc;
+                            }
                         });
                         
                         res.send(GETDOCS_SUCCESS);
