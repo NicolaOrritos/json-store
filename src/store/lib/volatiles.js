@@ -14,10 +14,6 @@ client.on("error", function (err)
 });
 
 
-volatiles_timers = new Array();
-timers_count = -1;
-
-
 /**
  * volatileDefinition:
  * - src: where to get the fresh document from
@@ -32,78 +28,103 @@ exports.Volatile = function(volatileDefinition, documentID)
     this.definition = JSON.parse(volatileDefinition);
     this.doc_id = documentID;
     
+    this.interval = this.DEFAULT_INTERVAL * 1000;
+        
+    if (this.definition.interval)
+    {
+        this.interval = this.definition.interval * 1000;
+    }
     
-    this.subroutine = function(definition, doc_id)
+    
+    this.subroutine = function(self)
     {
         console.log('\n[Volatile subroutine] =========================== BEGIN');
+        console.log("self is '%s'", self);
         
-        console.log("Sending request to '%s'...", definition.src);
+        // Check to see whether the volatile is still alive:
+        var volatileTimerName = getVolatileTimerName(self.doc_id);
         
-        // reload the document
-        http.request(definition.src, function(res)
+        console.log("volatileTimerName is '%s'", volatileTimerName);
+        
+        client.get(volatileTimerName, function(err, is_active)
         {
-            console.log("Sent request to '%s'", definition.src);
+            console.log("is_active is '%s'", is_active);
             
-            if (res)
+            if (is_active == "true")
             {
-                res.setEncoding("UTF-8");
+                console.log("Renewing timer...");
+            
+                // Renew the timer:
+                setTimeout(self.subroutine, self.interval, self);
                 
-                console.log('STATUS: ' + res.statusCode);
-                console.log('HEADERS: ' + JSON.stringify(res.headers));
+                console.log("Sending request to '%s'...", self.definition.src);
                 
-                res.on("data", function(chunk)
+                // reload the document
+                http.request(self.definition.src, function(res)
                 {
-                    console.log('All response: ' + chunk);   
-                
-                    if (res.statusCode == 200)
+                    console.log("Sent request to '%s'", self.definition.src);
+                    
+                    if (res)
                     {
-                        // re-add the doc with the same ID to the DB
-                        client.set(doc_id, chunk);
+                        res.setEncoding("UTF-8");
+                        
+                        console.log('STATUS: ' + res.statusCode);
+                        console.log('HEADERS: ' + JSON.stringify(res.headers));
+                        
+                        res.on("data", function(chunk)
+                        {
+                            console.log('All response: ' + chunk);   
+                        
+                            if (res.statusCode == 200)
+                            {
+                                // re-add the doc with the same ID to the DB
+                                client.set(self.doc_id, chunk);
+                            }
+                            
+                            console.log('[Volatile subroutine] =========================== END\n');
+                        });
                     }
                     
+                }).on("error", function(err)
+                {
+                    console.log('Problem with request: ' + err.message);
                     console.log('[Volatile subroutine] =========================== END\n');
-                });
+                    
+                }).end();
             }
-            
-        }).on("error", function(err)
-        {
-            console.log('Problem with request: ' + err.message);
-            console.log('[Volatile subroutine] =========================== END\n');
-            
-        }).end();
+            else
+            {
+                console.log("Removing volatile with name '%s'...", volatileTimerName);
+                
+                // Delete the timer from the DB
+                client.del(volatileTimerName);
+                
+                console.log('[Volatile subroutine] =========================== END\n');
+            }
+        });
     }
     
     this.initialize = function()
     {
-        var int = this.DEFAULT_INTERVAL * 1000;
-        
-        if (this.definition.interval)
-        {
-            int = this.definition.interval * 1000;
-        }
-        
-        if (int > 0)
+        if (this.interval > 0)
         {
             var volatileTimerName = getVolatileTimerName(this.doc_id);
         
             // Instantiate a subroutine that periodically checks the URL:
-            var timerID = setInterval(this.subroutine, int, this.definition, this.doc_id);
+            setTimeout(this.subroutine, this.interval, this);
             
-            // Save the timer into our array:
-            volatiles_timers[++timers_count] = timerID;
+            // "Mark" the routine in the DB:
+            client.set(volatileTimerName, true);
             
-            // Save the routine in the DB, so that we can resume it on a system reboot:
-            client.set(volatileTimerName, timers_count);
-            
-            console.log("Saved volatile timerID '%s' for document '%s' with name '%s'", JSON.stringify(timerID), this.doc_id, volatileTimerName);
-            console.log("Interval is '%d'", int);
+            console.log("Saved volatile timer for document '%s' with name '%s'", this.doc_id, volatileTimerName);
+            console.log("Interval is '%d'", this.interval);
         }
     };
 };
 
 function getVolatileTimerName(doc_id)
 {
-    return VOLATILES_PREFIX + ":" + doc_id + ":" + VOLATILES_TIMER_PREFIX;;
+    return VOLATILES_PREFIX + ":" + doc_id + ":" + VOLATILES_TIMER_PREFIX;
 }
 
 exports.VolatilesUtils = function()
@@ -118,13 +139,8 @@ exports.VolatilesUtils = function()
         {
             if (timer_id)
             {
-                var timer = volatiles_timers[timer_id];
-                
-                console.log("Deleting volatile timerID '%s' for document '%s'...", timer_id, doc_id);
-                clearInterval(timer);
-                
                 console.log("Deleting volatile with name '%s'...", volatileTimerName);
-                client.del(volatileTimerName);
+                client.set(volatileTimerName, false);
                 
                 console.log('[deleteVolatile] =========================== END\n');
             }
