@@ -6,6 +6,7 @@
 var redis = require("redis");
 
 var documents = require("../lib/documents");
+var volatiles = require("../lib/volatiles");
 
 
 var client = redis.createClient();
@@ -80,6 +81,10 @@ exports.savedoc = function(req, res)
         }
         
         console.log("Saved document '%s'", document.asString());
+        
+        
+        pushVolatile(req.param("volatile"), document.metadata.id);
+        pushExpirable(req.param("expires"), document.metadata.id);
     }
     else
     {
@@ -88,6 +93,35 @@ exports.savedoc = function(req, res)
         res.send(SAVEDOC_ERROR);
     }
 };
+
+function pushVolatile(volatileDefinition, doc_id)
+{
+    if (volatileDefinition)
+    {
+        // Create the volatile object that holds the info needed
+        var volatile = new volatiles.Volatile(volatileDefinition, doc_id);
+        
+        volatile.initialize();
+    }
+}
+
+function popVolatile(doc_id)
+{
+    var utils = new volatiles.VolatilesUtils();
+    
+    utils.deleteVolatile(doc_id, client);
+}
+
+function pushExpirable(expirableDefinition, doc_id)
+{
+    if (expirableDefinition)
+    {
+        var expirable = new volatiles.Expirable(expirableDefinition, doc_id);
+        
+        expirable.initialize();
+    }
+}
+
 
 /** req:
  *   - "doc_id": the ID of the document to be deleted
@@ -112,6 +146,9 @@ exports.deletedoc = function(req, res)
             if (reply)
             {
                 res.send(DELETEDOC_SUCCESS);
+                
+                // Check and remove if it's a volatile:
+                popVolatile(doc_id);
             }
             else
             {
@@ -127,7 +164,7 @@ exports.deletedoc = function(req, res)
             
         res.send(DELETEDOC_ERROR);
     }
-}
+};
 
 /** req:
  *   - "doc_id": the ID of the document to be retrieved
@@ -265,6 +302,6 @@ exports.getdocs = function(req, res)
             
         res.send(GETDOCS_ERROR);
     }
-}
+};
 
 
