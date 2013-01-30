@@ -3,9 +3,17 @@
  * Module dependencies.
  */
 
-var express = require('express');
+var express = require("express");
+var redis = require("redis");
 
-var gzip = require("gzip");
+var client = redis.createClient();
+
+client.on("error", function (err)
+{
+    console.log("Got an error from the Redis client: " + err);
+});
+
+
 var routes = {
                   'default': require('./routes/default'),
                   'store':   require('./routes/store')
@@ -30,12 +38,12 @@ app.configure(function()
 
 app.configure('development', function()
 {
-  app.use(express.errorHandler({ dumpExceptions: true, showStack: true })); 
+    app.use(express.errorHandler({ dumpExceptions: true, showStack: true })); 
 });
 
 app.configure('production', function()
 {
-  app.use(express.errorHandler()); 
+    app.use(express.errorHandler()); 
 });
 
 
@@ -45,6 +53,12 @@ app.get('/getdocs', routes.store.getdocs);
 app.get('/getdoc/:doc_id', routes.store.getdoc);
 app.get('/deletedoc/:doc_id', routes.store.deletedoc);
 app.get('/', routes.default.index);
+
+
+// Load all volatiles:
+var volatiles = require("./lib/volatiles");
+
+volatiles.loadAll();
 
 
 app.listen(PORT);

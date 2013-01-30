@@ -3,7 +3,8 @@ var http = require("http");
 var redis = require("redis");
 
 var VOLATILES_PREFIX = "volatiles";
-var VOLATILES_TIMER_PREFIX = "timer";
+var VOLATILES_TIMER_FIELD = "timer";
+var VOLATILES_DEFINITION_FIELD = "definition";
 
 
 var client = redis.createClient();
@@ -12,6 +13,11 @@ client.on("error", function (err)
 {
     console.log("Got an error from the Redis client: " + err);
 });
+
+function getVolatileName(doc_id)
+{
+    return VOLATILES_PREFIX + ":" + doc_id;
+}
 
 
 /**
@@ -46,7 +52,7 @@ exports.Volatile = function(volatileDefinition, documentID)
         
         console.log("volatileTimerName is '%s'", volatileTimerName);
         
-        client.get(volatileTimerName, function(err, is_active)
+        client.hget(volatileTimerName, VOLATILES_TIMER_FIELD, function(err, is_active)
         {
             console.log("is_active is '%s'", is_active);
             
@@ -94,10 +100,10 @@ exports.Volatile = function(volatileDefinition, documentID)
             }
             else
             {
-                console.log("Removing volatile with name '%s'...", volatileTimerName);
+                console.log("Removing volatile for document '%s'...", self.doc_id);
                 
                 // Delete the timer from the DB
-                client.del(volatileTimerName);
+                client.hdel(VOLATILES_PREFIX, self.doc_id);
                 
                 console.log('[Volatile subroutine] =========================== END\n');
             }
@@ -108,23 +114,68 @@ exports.Volatile = function(volatileDefinition, documentID)
     {
         if (this.interval > 0)
         {
-            var volatileTimerName = getVolatileTimerName(this.doc_id);
-        
+            var volatile_name = getVolatileName(this.doc_id);
+            
             // Instantiate a subroutine that periodically checks the URL:
             setTimeout(this.subroutine, this.interval, this);
             
-            // "Mark" the routine in the DB:
-            client.set(volatileTimerName, true);
+            // "Mark" the routine as active in the DB:
+            client.hset(volatile_name, VOLATILES_TIMER_FIELD, true);
+            client.hset(volatile_name, VOLATILES_DEFINITION_FIELD, JSON.stringify(this.definition));
             
-            console.log("Saved volatile timer for document '%s' with name '%s'", this.doc_id, volatileTimerName);
+            client.sadd(VOLATILES_PREFIX, this.doc_id);
+            
+            console.log("Saved volatile timer for document '%s' under '%s' hash", this.doc_id, volatile_name);
             console.log("Interval is '%d'", this.interval);
         }
     };
 };
 
+exports.loadAll = function()
+{
+    console.log("\n[volatiles.loadAll] ======================== BEGIN");
+    
+    console.log("Initializing volatiles...");
+    console.log("Requesting set '%s' to the DB...", VOLATILES_PREFIX);
+    
+    // Load all timers from the DB
+    client.smembers(VOLATILES_PREFIX, function(err, result)
+    {
+        console.log("Got volatiles set: %s", result);
+        
+        if (result)
+        {
+            result.forEach(function(doc_id, position)
+            {
+                console.log("Got volatile for document '%s'", doc_id);
+                
+                var volatile_name = getVolatileName(doc_id);
+                
+                client.hgetall(volatile_name, function(err, hash)
+                {
+                    console.log("Got hash '%s'", JSON.stringify(hash));
+                    
+                    if (hash)
+                    {
+                        var definition = hash[VOLATILES_DEFINITION_FIELD];
+                        
+                        console.log("Creating volatile with definition '%s' and doc_id '%s' ...", definition, doc_id);
+                        
+                        var volatile = new exports.Volatile(definition, doc_id);
+                        
+                        volatile.initialize();
+        
+                        console.log("[volatiles.loadAll] ======================== END\n");
+                    }
+                });
+            });
+        }
+    });
+}
+
 function getVolatileTimerName(doc_id)
 {
-    return VOLATILES_PREFIX + ":" + doc_id + ":" + VOLATILES_TIMER_PREFIX;
+    return VOLATILES_PREFIX + ":" + doc_id;
 }
 
 exports.VolatilesUtils = function()
@@ -135,12 +186,12 @@ exports.VolatilesUtils = function()
         
         console.log('\n[deleteVolatile] =========================== BEGIN');
     
-        client.get(volatileTimerName, function(err, timer_id)
+        client.hget(volatileTimerName, VOLATILES_TIMER_FIELD, function(err, timer_id)
         {
             if (timer_id)
             {
                 console.log("Deleting volatile with name '%s'...", volatileTimerName);
-                client.set(volatileTimerName, false);
+                client.hset(volatileTimerName, VOLATILES_TIMER_FIELD, false);
                 
                 console.log('[deleteVolatile] =========================== END\n');
             }
