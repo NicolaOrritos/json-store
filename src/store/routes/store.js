@@ -1,23 +1,6 @@
 
-/*
- * POST a document and store it
- */
-
-var redis = require("redis");
 
 var documents = require("../lib/documents");
-var volatiles = require("../lib/volatiles");
-
-
-var client = redis.createClient();
-
-client.on("error", function (err)
-{
-    console.log("Got an error from the Redis client: " + err);
-});
-
-var TAGS_PREFIX = "tags";
-
 
 
 // Example document:
@@ -34,93 +17,34 @@ var TAGS_PREFIX = "tags";
  */
 exports.savedoc = function(req, res)
 {
-    var SAVEDOC_SUCCESS = {"result": "OK"};
-    var SAVEDOC_ERROR   = {"result": "ERROR", "cause": "unknown"};
-
-    var doc = req.param("doc");
-    var tags = req.param("tags");
+    var SAVEDOC_ERROR = {"result": "ERROR", "cause": "unknown"};
     
-    if (doc)
+    var raw_doc = req.param("doc");
+    var tags = req.param("tags");
+    var volatile_definition = req.param("volatile");
+    var expires = req.param("expires");
+    
+    var document = new documents.Document(raw_doc, tags, volatile_definition, expires);
+    
+    document.save(function(err, success)
     {
-        console.log("Received JSON document '%s' [typeof '%s']", doc, typeof(doc));
-        
-        var metadata = new documents.Metadata(doc);
-        document = new documents.Document(metadata, JSON.parse(doc));
-        
-        SAVEDOC_SUCCESS.doc_id = document.metadata.id;
-        
-        
-        if (tags)
+        if (success)
         {
-            tags_list = JSON.parse(tags);
-            
-            document.metadata.tags = tags_list;
-            
-            client.set(document.metadata.id, document.asString());
-            
-            // Answer early and then add tags
-            res.send(SAVEDOC_SUCCESS);
-            
-        
-            tags_list.forEach(function(tagName, index)
-            {
-                var tag = TAGS_PREFIX + ":" + tagName;
-            
-                console.log("Adding doc with ID '%s' to set '%s' [complete tag is '%s']",document.metadata.id , tagName, tag);
-                
-                // Associate the doc_id with each one of them:
-                client.sadd(tag, document.metadata.id);
-            });
+            res.send(success);
         }
         else
         {
-            // no error: tags are optional
-            client.set(document.metadata.id, document.asString());
-            
-            res.send(SAVEDOC_SUCCESS);
+            if (err)
+            {
+                res.send(err);
+            }
+            else
+            {
+                res.send(SAVEDOC_ERROR);
+            }
         }
-        
-        console.log("Saved document '%s'", document.asString());
-        
-        
-        pushVolatile(req.param("volatile"), document.metadata.id);
-        pushExpirable(req.param("expires"), document.metadata.id);
-    }
-    else
-    {
-        SAVEDOC_ERROR.cause = 'null_document';
-    
-        res.send(SAVEDOC_ERROR);
-    }
+    });
 };
-
-function pushVolatile(volatileDefinition, doc_id)
-{
-    if (volatileDefinition)
-    {
-        // Create the volatile object that holds the info needed
-        var volatile = new volatiles.Volatile(volatileDefinition, doc_id);
-        
-        volatile.initialize();
-    }
-}
-
-function popVolatile(doc_id)
-{
-    var utils = new volatiles.VolatilesUtils();
-    
-    utils.deleteVolatile(doc_id, client);
-}
-
-function pushExpirable(expirableDefinition, doc_id)
-{
-    if (expirableDefinition)
-    {
-        var expirable = new volatiles.Expirable(expirableDefinition, doc_id);
-        
-        expirable.initialize();
-    }
-}
 
 
 /** req:
@@ -132,38 +56,30 @@ function pushExpirable(expirableDefinition, doc_id)
  */
 exports.deletedoc = function(req, res)
 {
-    var DELETEDOC_SUCCESS = {"result": "OK"};
-    var DELETEDOC_ERROR   = {"result": "ERROR", "cause": "unknown"};
+    var DELETEDOC_ERROR = {"result": "ERROR", "cause": "unknown"};
     
     var doc_id = req.param("doc_id");
     
-    if (doc_id)
+    var utils = new documents.Utils();
+    
+    utils.deleteDoc(doc_id, function(err, success)
     {
-        client.del(doc_id, function (err, reply)
+        if (success)
         {
-            console.log("client replied with '%s' [typeof '%s']", reply, typeof(reply));
-        
-            if (reply)
+            res.send(success);
+        }
+        else
+        {
+            if (err)
             {
-                res.send(DELETEDOC_SUCCESS);
-                
-                // Check and remove if it's a volatile:
-                popVolatile(doc_id);
+                res.send(err);
             }
             else
             {
-                DELETEDOC_ERROR.cause = err ? err : "not_found";
-                
                 res.send(DELETEDOC_ERROR);
             }
-        });
-    }
-    else
-    {
-        DELETEDOC_ERROR.cause = 'null_doc_id';
-            
-        res.send(DELETEDOC_ERROR);
-    }
+        }
+    });
 };
 
 /** req:
@@ -175,37 +91,30 @@ exports.deletedoc = function(req, res)
  */
 exports.getdoc = function(req, res)
 {
-    var GETDOC_SUCCESS = {"result": "OK"};
-    var GETDOC_ERROR   = {"result": "ERROR", "cause": "unknown"};
+    var GETDOC_ERROR = {"result": "ERROR", "cause": "unknown"};
     
     var doc_id = req.param("doc_id");
     
-    if (doc_id)
+    var utils = new documents.Utils();
+    
+    utils.getDoc(doc_id, function(err, success)
     {
-        client.get(doc_id, function (err, reply)
+        if (success)
         {
-            console.log("client replied with '%s' [typeof '%s']", reply, typeof(reply));
-        
-            if (reply)
+            res.send(success);
+        }
+        else
+        {
+            if (err)
             {
-                GETDOC_SUCCESS.doc = JSON.parse(reply);
-                
-                res.send(GETDOC_SUCCESS);
+                res.send(err);
             }
             else
             {
-                GETDOC_ERROR.cause = err ? err : "not_found";
-                
                 res.send(GETDOC_ERROR);
             }
-        });
-    }
-    else
-    {
-        GETDOC_ERROR.cause = 'null_doc_id';
-            
-        res.send(GETDOC_ERROR);
-    }
+        }
+    });
 };
 
 /** req:
@@ -217,91 +126,30 @@ exports.getdoc = function(req, res)
  */
 exports.getdocs = function(req, res)
 {
-    var GETDOCS_SUCCESS = {"result": "OK"};
     var GETDOCS_ERROR   = {"result": "ERROR", "cause": "unknown"};
-    
-    var result = new Array();
     
     var tags_list = req.query.tags;
     
-    if (tags_list)
+    var utils = new documents.Utils();
+    
+    utils.getDocs(tags_list, function(err, success)
     {
-        var tagsNames = tags_list.split(",");
-        
-        GETDOCS_SUCCESS.docs_ids = new Array();
-        GETDOCS_SUCCESS.docs = new Object();
-        
-        var tags = new Array();
-        
-        console.log("[getdocs] asking sinter for the following tags:");
-        tagsNames.forEach(function(tagName, position)
+        if (success)
         {
-            tags[position] = TAGS_PREFIX + ":" + tagName;
-            
-            console.log("%d) %s [%s]", position, tagName, tags[position]);
-        });
-        
-        client.sinter(tags, function(err, reply)
+            res.send(success);
+        }
+        else
         {
-            console.log("[getdocs] sinter replied with '%s'", reply);
-        
-            if (reply)
+            if (err)
             {
-                client.mget(reply, function(err, reply)
-                {
-                    console.log("[getdocs] mget replied with '%s' [typeof '%s']", reply, typeof(reply));
-                
-                    if(reply)
-                    {
-                        reply.forEach(function(doc_str, position)
-                        {
-                            if (doc_str)
-                            {
-                                var doc = JSON.parse(doc_str);
-                                
-                                console.log("saving doc_id '%s'", doc.metadata.id);
-                                console.log("with doc_str '%s'", doc_str);
-                                console.log("(position is '%d')", position);
-                                
-                                GETDOCS_SUCCESS.docs_ids[position] = doc.metadata.id;
-                                GETDOCS_SUCCESS.docs[doc.metadata.id] = doc;
-                            }
-                        });
-                        
-                        res.send(GETDOCS_SUCCESS);
-                    }
-                    else if (err)
-                    {
-                        console.log("error retrieving doc: %s", err);
-                        
-                        GETDOCS_ERROR.cause = err;
-                
-                        res.send(GETDOCS_ERROR);
-                    }
-                    else
-                    {
-                        console.log("reply was undefined");
-                        
-                        GETDOCS_ERROR.cause = "not_found";
-                
-                        res.send(GETDOCS_ERROR);
-                    }
-                });
+                res.send(err);
             }
             else
             {
-                GETDOCS_ERROR.cause = "not_found";
-                
                 res.send(GETDOCS_ERROR);
             }
-        });
-    }
-    else
-    {
-        GETDOCS_ERROR.cause = 'no_tags';
-            
-        res.send(GETDOCS_ERROR);
-    }
+        }
+    });
 };
 
 

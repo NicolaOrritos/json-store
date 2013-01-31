@@ -1,6 +1,7 @@
 
 var http = require("http");
 var redis = require("redis");
+var documents = require("./documents");
 
 var VOLATILES_PREFIX = "volatiles";
 var VOLATILES_TIMER_FIELD = "timer";
@@ -79,12 +80,13 @@ exports.Volatile = function(volatileDefinition, documentID)
                         
                         res.on("data", function(chunk)
                         {
-                            console.log('All response: ' + chunk);   
+                            console.log('All response: ' + chunk);
                         
                             if (res.statusCode == 200)
                             {
                                 // re-add the doc with the same ID to the DB
-                                client.set(self.doc_id, chunk);
+                                var utils = new documents.Utils();
+                                utils.docFromDBString(chunk).save(function(){});
                             }
                             
                             console.log('[Volatile subroutine] =========================== END\n');
@@ -198,7 +200,4 @@ exports.VolatilesUtils = function()
         });
     };
 };
-
-exports.Expirable = function(expirableDefinition, doc_id, client)
-{};
 
