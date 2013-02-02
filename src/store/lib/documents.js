@@ -39,13 +39,7 @@ function pushExpirable(expires, doc_id)
     {
         if (expires > 0)
         {
-            setTimeout(function()
-            {
-                popVolatile(doc_id);
-                
-                client.del(doc_id);
-                
-            }, expires * 1000);
+            client.expire(doc_id, expires);
             
             console.log("\nDocument with ID '%s' expires in '%d' seconds\n", doc_id, expires);
         }
@@ -80,13 +74,17 @@ exports.Document = function(raw_doc, tags, volatile_definition, expires)
     this.metadata.expires = expires;
     
     
-    this.save = function(callback)
+    this.save = function(callback, doc_id)
     {
         if (this.payload)
         {
             var SAVEDOC_SUCCESS = {"result": "OK"};
             var SAVEDOC_ERROR   = {"result": "ERROR", "cause": "unknown"};
             
+            if (doc_id)
+            {
+                this.metadata.id = doc_id;
+            }
             
             SAVEDOC_SUCCESS.doc_id = this.metadata.id;
             
@@ -142,14 +140,30 @@ exports.Document = function(raw_doc, tags, volatile_definition, expires)
 
 exports.Utils = function()
 {
+    this.docFromString = function(doc_str)
+    {
+        if (doc_str)
+        {
+            var document = new exports.Document(doc_str);
+            
+            console.log("[Utils.docFromString] Returning Document:\n%s", JSON.stringify(document));
+            
+            return document;
+        }
+        else
+        {
+            return undefined;
+        }
+    };
+    
     this.docFromDBString = function(doc_str)
     {
         if (doc_str)
         {
-            console.log("[Utils.docFromDBString] Returning Document:\n%s", doc_str);
-            
             var db_representation = JSON.parse(doc_str);
             var document = new exports.Document(JSON.stringify(db_representation.doc));
+            
+            console.log("[Utils.docFromDBString] Returning Document:\n%s", JSON.stringify(document));
             
             return document;
         }

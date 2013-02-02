@@ -47,67 +47,78 @@ exports.Volatile = function(volatileDefinition, documentID)
     {
         console.log('\n[Volatile subroutine] =========================== BEGIN');
         console.log("self is '%s'", self);
+        console.log("doc_id is '%s'", self.doc_id);
         
-        // Check to see whether the volatile is still alive:
-        var volatileTimerName = getVolatileTimerName(self.doc_id);
         
-        console.log("volatileTimerName is '%s'", volatileTimerName);
-        
-        client.hget(volatileTimerName, VOLATILES_TIMER_FIELD, function(err, is_active)
+        /* Check whether the document got previously deleted,
+         * i.e. it was an expirable or it was deleted by the user.
+         */
+        client.get(self.doc_id, function(err, doc)
         {
-            console.log("is_active is '%s'", is_active);
-            
-            if (is_active == "true")
+            if (doc)
             {
-                console.log("Renewing timer...");
-            
-                // Renew the timer:
-                setTimeout(self.subroutine, self.interval, self);
+                // Check to see whether the volatile is still alive:
+                var volatileTimerName = getVolatileTimerName(self.doc_id);
                 
-                console.log("Sending request to '%s'...", self.definition.src);
+                console.log("volatileTimerName is '%s'", volatileTimerName);
                 
-                // reload the document
-                http.request(self.definition.src, function(res)
+                client.hget(volatileTimerName, VOLATILES_TIMER_FIELD, function(err, is_active)
                 {
-                    console.log("Sent request to '%s'", self.definition.src);
+                    console.log("is_active is '%s'", is_active);
                     
-                    if (res)
+                    if (is_active == "true")
                     {
-                        res.setEncoding("UTF-8");
+                        console.log("Renewing timer...");
+                    
+                        // Renew the timer:
+                        setTimeout(self.subroutine, self.interval, self);
                         
-                        console.log('STATUS: ' + res.statusCode);
-                        console.log('HEADERS: ' + JSON.stringify(res.headers));
+                        console.log("Sending request to '%s'...", self.definition.src);
                         
-                        res.on("data", function(chunk)
+                        // reload the document
+                        http.request(self.definition.src, function(res)
                         {
-                            console.log('All response: ' + chunk);
-                        
-                            if (res.statusCode == 200)
+                            console.log("Sent request to '%s'", self.definition.src);
+                            
+                            if (res)
                             {
-                                // re-add the doc with the same ID to the DB
-                                var utils = new documents.Utils();
-                                utils.docFromDBString(chunk).save(function(){});
+                                res.setEncoding("UTF-8");
+                                
+                                console.log('STATUS: ' + res.statusCode);
+                                console.log('HEADERS: ' + JSON.stringify(res.headers));
+                                
+                                res.on("data", function(chunk)
+                                {
+                                    console.log('All response: ' + chunk);
+                                
+                                    if (res.statusCode == 200)
+                                    {
+                                        // re-add the doc with the same ID to the DB
+                                        var utils = new documents.Utils();
+                                        utils.docFromString(chunk).save(function(){}, self.doc_id);
+                                    }
+                                    
+                                    console.log('[Volatile subroutine] =========================== END\n');
+                                });
                             }
                             
+                        }).on("error", function(err)
+                        {
+                            console.log('Problem with request: ' + err.message);
                             console.log('[Volatile subroutine] =========================== END\n');
-                        });
+                            
+                        }).end();
                     }
-                    
-                }).on("error", function(err)
-                {
-                    console.log('Problem with request: ' + err.message);
-                    console.log('[Volatile subroutine] =========================== END\n');
-                    
-                }).end();
-            }
-            else
-            {
-                console.log("Removing volatile for document '%s'...", self.doc_id);
-                
-                // Delete the timer from the DB
-                client.hdel(VOLATILES_PREFIX, self.doc_id);
-                
-                console.log('[Volatile subroutine] =========================== END\n');
+                    else
+                    {
+                        console.log("Removing volatile for document '%s'...", self.doc_id);
+                        
+                        // Delete the timer from the DB
+                        client.hdel(VOLATILES_PREFIX, self.doc_id);
+                        
+                        console.log('[Volatile subroutine] =========================== END\n');
+                    }
+                });
             }
         });
     }
