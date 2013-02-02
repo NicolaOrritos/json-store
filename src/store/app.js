@@ -51,6 +51,7 @@ app.configure('production', function()
 app.post('/savedoc', routes.store.savedoc);
 app.get('/getdocs', routes.store.getdocs);
 app.get('/getdoc/:doc_id', routes.store.getdoc);
+app.get('/getdoc/:doc_id/metadata', routes.store.getdocmetadata);
 app.get('/deletedoc/:doc_id', routes.store.deletedoc);
 app.get('/', routes.default.index);
 

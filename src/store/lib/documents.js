@@ -207,6 +207,40 @@ exports.Utils = function()
         }
     };
     
+    this.getDocMetadata = function(doc_id, callback)
+    {
+        var GETDOCMETADATA_SUCCESS = {"result": "OK"};
+        var GETDOCMETADATA_ERROR = {"result": "ERROR", "cause": "unknown"};
+        
+        if (doc_id)
+        {
+            client.get(doc_id, function(err, doc)
+            {
+                if (doc)
+                {
+                    var full_doc = JSON.parse(doc);
+                    
+                    GETDOCMETADATA_SUCCESS.metadata = full_doc.metadata;
+                    callback.call(this, null, GETDOCMETADATA_SUCCESS);
+                }
+                else
+                {
+                    if (err)
+                    {
+                        GETDOCMETADATA_ERROR.cause = err;
+                    }
+                    
+                    callback.call(this, GETDOCMETADATA_ERROR, null);
+                }
+            });
+        }
+        else
+        {
+            GETDOCMETADATA_ERROR.cause = "null_doc_id";
+            callback.call(this, GETDOCMETADATA_ERROR, null);
+        }
+    };
+    
     this.getDocs = function(tags_list, callback)
     {
         var GETDOCS_SUCCESS = {"result": "OK"};

@@ -117,6 +117,34 @@ exports.getdoc = function(req, res)
     });
 };
 
+exports.getdocmetadata = function(req, res)
+{
+    var GETDOCMETADATA_ERROR = {"result": "ERROR", "cause": "unknown"};
+    
+    var doc_id = req.param("doc_id");
+    
+    var utils = new documents.Utils();
+    
+    utils.getDocMetadata(doc_id, function(err, success)
+    {
+        if (success)
+        {
+            res.send(success);
+        }
+        else
+        {
+            if (err)
+            {
+                res.send(err);
+            }
+            else
+            {
+                res.send(GETDOCMETADATA_ERROR);
+            }
+        }
+    });
+};
+
 /** req:
  *   - "tags": an array of tags (strings)
  *  
