@@ -43,22 +43,22 @@ exports.Volatile = function(volatileDefinition, documentID)
     }
     
     
-    this.subroutine = function(self)
+    this.subroutine = function(volatile_def)
     {
         console.log('\n[Volatile subroutine] =========================== BEGIN');
-        console.log("self is '%s'", self);
-        console.log("doc_id is '%s'", self.doc_id);
+        console.log("volatile_def is '%s'", volatile_def);
+        console.log("doc_id is '%s'", volatile_def.doc_id);
         
         
         /* Check whether the document got previously deleted,
          * i.e. it was an expirable or it was deleted by the user.
          */
-        client.get(self.doc_id, function(err, doc)
+        client.get(volatile_def.doc_id, function(err, doc)
         {
             if (doc)
             {
                 // Check to see whether the volatile is still alive:
-                var volatileTimerName = getVolatileTimerName(self.doc_id);
+                var volatileTimerName = getVolatileTimerName(volatile_def.doc_id);
                 
                 console.log("volatileTimerName is '%s'", volatileTimerName);
                 
@@ -71,14 +71,14 @@ exports.Volatile = function(volatileDefinition, documentID)
                         console.log("Renewing timer...");
                     
                         // Renew the timer:
-                        setTimeout(self.subroutine, self.interval, self);
+                        setTimeout(volatile_def.subroutine, volatile_def.interval, volatile_def);
                         
-                        console.log("Sending request to '%s'...", self.definition.src);
+                        console.log("Sending request to '%s'...", volatile_def.definition.src);
                         
                         // reload the document
-                        http.request(self.definition.src, function(res)
+                        http.request(volatile_def.definition.src, function(res)
                         {
-                            console.log("Sent request to '%s'", self.definition.src);
+                            console.log("Sent request to '%s'", volatile_def.definition.src);
                             
                             if (res)
                             {
@@ -95,7 +95,7 @@ exports.Volatile = function(volatileDefinition, documentID)
                                     {
                                         // re-add the doc with the same ID to the DB
                                         var utils = new documents.Utils();
-                                        utils.docFromString(chunk).save(function(){}, self.doc_id);
+                                        utils.docFromString(chunk).save(function(){}, volatile_def.doc_id);
                                     }
                                     
                                     console.log('[Volatile subroutine] =========================== END\n');
@@ -111,10 +111,10 @@ exports.Volatile = function(volatileDefinition, documentID)
                     }
                     else
                     {
-                        console.log("Removing volatile for document '%s'...", self.doc_id);
+                        console.log("Removing volatile for document '%s'...", volatile_def.doc_id);
                         
                         // Delete the timer from the DB
-                        client.hdel(VOLATILES_PREFIX, self.doc_id);
+                        client.hdel(VOLATILES_PREFIX, volatile_def.doc_id);
                         
                         console.log('[Volatile subroutine] =========================== END\n');
                     }
