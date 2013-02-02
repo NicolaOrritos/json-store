@@ -186,7 +186,8 @@ exports.Utils = function()
             
                 if (reply)
                 {
-                    GETDOC_SUCCESS.doc = JSON.parse(reply);
+                    var full_doc = JSON.parse(reply);
+                    GETDOC_SUCCESS.doc = full_doc.payload;
                     
                     callback.call(this, null, GETDOC_SUCCESS);
                 }
@@ -250,12 +251,12 @@ exports.Utils = function()
                                 {
                                     var doc = JSON.parse(doc_str);
                                     
-                                    console.log("saving doc_id '%s'", doc.metadata.id);
+                                    console.log("returning doc_id '%s'", doc.metadata.id);
                                     console.log("with doc_str '%s'", doc_str);
                                     console.log("(position is '%d')", position);
                                     
                                     GETDOCS_SUCCESS.docs_ids[position] = doc.metadata.id;
-                                    GETDOCS_SUCCESS.docs[doc.metadata.id] = doc;
+                                    GETDOCS_SUCCESS.docs[doc.metadata.id] = doc.payload;
                                 }
                             });
                             
