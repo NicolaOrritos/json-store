@@ -4,6 +4,9 @@ var redis = require("redis");
 
 var volatiles = require("./volatiles");
 
+var METADATA_FIELD = "metadata";
+var DOCUMENT_FIELD = "document";
+
 
 var client = redis.createClient();
 
@@ -53,6 +56,11 @@ var Metadata = function(doc)
 
     this.date = new Date();
     this.tags = new Array();
+    
+    this.asString = function()
+    {
+        return JSON.stringify(this);
+    };
 };
 
 
@@ -91,7 +99,8 @@ exports.Document = function(raw_doc, tags, volatile_definition, expires)
             
             if (this.metadata.tags)
             {
-                client.set(this.metadata.id, this.asString());
+                client.hset(this.metadata.id, METADATA_FIELD, this.metadata.asString());
+                client.hset(this.metadata.id, DOCUMENT_FIELD, this.payloadAsString());
                 
                 // Answer early and then add tags
                 callback.call(this, null, SAVEDOC_SUCCESS);
@@ -110,12 +119,13 @@ exports.Document = function(raw_doc, tags, volatile_definition, expires)
             else
             {
                 // no error: tags are optional
-                client.set(this.metadata.id, this.asString());
+                client.hset(this.metadata.id, METADATA_FIELD, this.metadata.asString());
+                client.hset(this.metadata.id, DOCUMENT_FIELD, this.payloadAsString());
                 
                 callback.call(this, null, SAVEDOC_SUCCESS);
             }
             
-            console.log("[Document.save] Saved document '%s'", this.asString());
+            console.log("[Document.save] Saved document '%s'", this.payloadAsString());
             
             
             pushVolatile(this.metadata.volatile_definition, this.metadata.id);
@@ -129,9 +139,9 @@ exports.Document = function(raw_doc, tags, volatile_definition, expires)
         }
     };
     
-    this.asString = function()
+    this.payloadAsString = function()
     {
-        return JSON.stringify(this);
+        return JSON.stringify(this.payload);
     };
     
     console.log("NEW DOCUMENT ===================== END\n");
@@ -180,14 +190,13 @@ exports.Utils = function()
         
         if (doc_id)
         {
-            client.get(doc_id, function (err, reply)
+            client.hget(doc_id, DOCUMENT_FIELD, function(err, reply)
             {
                 console.log("[Utils.getDoc] client replied with '%s' [typeof '%s']", reply, typeof(reply));
             
                 if (reply)
                 {
-                    var full_doc = JSON.parse(reply);
-                    GETDOC_SUCCESS.doc = full_doc.payload;
+                    GETDOC_SUCCESS.doc = JSON.parse(reply);
                     
                     callback.call(this, null, GETDOC_SUCCESS);
                 }
@@ -214,13 +223,14 @@ exports.Utils = function()
         
         if (doc_id)
         {
-            client.get(doc_id, function(err, doc)
+            client.hget(doc_id, METADATA_FIELD, function(err, metadata)
             {
-                if (doc)
+                console.log("[Utils.getDocMetadata] client replied with '%s' [typeof '%s']", metadata, typeof(metadata));
+                
+                if (metadata)
                 {
-                    var full_doc = JSON.parse(doc);
+                    GETDOCMETADATA_SUCCESS.metadata = JSON.parse(metadata);
                     
-                    GETDOCMETADATA_SUCCESS.metadata = full_doc.metadata;
                     callback.call(this, null, GETDOCMETADATA_SUCCESS);
                 }
                 else
@@ -228,6 +238,10 @@ exports.Utils = function()
                     if (err)
                     {
                         GETDOCMETADATA_ERROR.cause = err;
+                    }
+                    else
+                    {
+                        GETDOCMETADATA_ERROR.cause = "not_found";
                     }
                     
                     callback.call(this, GETDOCMETADATA_ERROR, null);
@@ -237,6 +251,7 @@ exports.Utils = function()
         else
         {
             GETDOCMETADATA_ERROR.cause = "null_doc_id";
+            
             callback.call(this, GETDOCMETADATA_ERROR, null);
         }
     };
@@ -273,24 +288,32 @@ exports.Utils = function()
             
                 if (reply)
                 {
-                    client.mget(reply, function(err, reply)
-                    {
-                        console.log("[getdocs] mget replied with '%s' [typeof '%s']", reply, typeof(reply));
+                    var multi = client.multi();
                     
-                        if(reply)
+                    reply.forEach(function(hash, position)
+                    {
+                        multi.hgetall(hash);
+                    });
+                    
+                    
+                    
+                    multi.exec(function(err, docs)
+                    {
+                        console.log("[getdocs] multi replied with '%s' [typeof '%s']", docs, typeof(docs));
+                    
+                        if(docs)
                         {
-                            reply.forEach(function(doc_str, position)
+                            docs.forEach(function(hash, position)
                             {
-                                if (doc_str)
+                                if (hash)
                                 {
-                                    var doc = JSON.parse(doc_str);
+                                    var metadata = JSON.parse(hash.metadata);
                                     
-                                    console.log("returning doc_id '%s'", doc.metadata.id);
-                                    console.log("with doc_str '%s'", doc_str);
+                                    console.log("returning doc_id '%s'", metadata.id);
                                     console.log("(position is '%d')", position);
                                     
-                                    GETDOCS_SUCCESS.docs_ids[position] = doc.metadata.id;
-                                    GETDOCS_SUCCESS.docs[doc.metadata.id] = doc.payload;
+                                    GETDOCS_SUCCESS.docs_ids[position] = metadata.id;
+                                    GETDOCS_SUCCESS.docs[metadata.id] = JSON.parse(hash.document);
                                 }
                             });
                             
