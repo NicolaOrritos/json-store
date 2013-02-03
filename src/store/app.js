@@ -48,11 +48,11 @@ app.configure('production', function()
 
 
 // Routes
-app.post('/savedoc', routes.store.savedoc);
-app.get('/getdocs', routes.store.getdocs);
-app.get('/getdoc/:doc_id', routes.store.getdoc);
-app.get('/getdoc/:doc_id/metadata', routes.store.getdocmetadata);
-app.get('/deletedoc/:doc_id', routes.store.deletedoc);
+app.post('/save', routes.store.savedoc);
+app.get('/docs/:doc_id', routes.store.getdoc);
+app.get('/docs/:doc_id/metadata', routes.store.getdocmetadata);
+app.get('/docs', routes.store.getdocs);
+app.get('/delete/:doc_id', routes.store.deletedoc);
 app.get('/', routes.default.index);
 
 
