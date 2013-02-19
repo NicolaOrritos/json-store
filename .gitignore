@@ -18,3 +18,7 @@ npm-debug.log
 test-results
 src/admin
 src/store/node_modules
+
+.project
+.settings/
+
