@@ -4,6 +4,8 @@
  */
 
 var express = require("express");
+var cons = require('consolidate');
+var swig = require('swig');
 var redis = require("redis");
 
 var client = redis.createClient();
@@ -28,12 +30,22 @@ var PORT = 8124;
 
 app.configure(function()
 {
-  app.set('views', __dirname + '/views');
-  app.set('view engine', 'jade');
-  app.use(express.bodyParser());
-  app.use(express.methodOverride());
-  app.use(app.router);
-  app.use(express.static(__dirname + '/public'));
+    app.engine('.html', cons.swig);
+    app.set('view engine', 'html');
+    
+    swig.init({
+        root: __dirname + '/views',
+        allowErrors: true // allows errors to be thrown and caught by express instead of suppressed by Swig
+    });
+    
+    app.set('views', __dirname + '/views');
+    
+    app.use(express.bodyParser());
+    app.use(express.methodOverride());
+    app.use(app.router);
+    app.use(express.static(__dirname + '/public'));
+    
+    
 });
 
 app.configure('development', function()

@@ -4,6 +4,7 @@
   , "private": true
   , "dependencies": {
       "express": ""
+    , "consolidate": ""
     , "swig": ""
     , "redis": ""
     , "node_hash": ""
