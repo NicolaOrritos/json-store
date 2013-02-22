@@ -1,10 +1,15 @@
 body {
     font-family: 'Titillium Web', sans-serif;
   
-    color: #6AC;
-    background-color: #444;
+    color: #444;
+    background-color: #cce;
+}
+
+header {
+    display: block;
+    background-color: #89a;
     
-    margin: 0.5em;
+    padding: 1em 0.5em 1.25em 1em;
 }
 
 .hidden {
@@ -20,6 +25,33 @@ h1 {
 h1>a {
     color: #6AC;
     text-shadow: 1px 2px 3px #012;
+}
+
+h2 {
+    font-size: 1.25em;
+}
+
+#content {
+    margin: 1.5em 0.5em 1.5em 1em;
+}
+
+#content li {
+    width: 20%;
+    margin: 6px;
+    padding: 4px;
+    border-bottom: 2px solid #a88;
+}
+
+footer {
+    display: block;
+    position: fixed;
+    bottom: 0px;
+    right: 0px;
+    
+    color: #abc;
+    background-color: #444;
+    
+    padding: 0.65em 0.5em 0.65em 1em;
 }
 
 a {

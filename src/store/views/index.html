@@ -1,10 +1,25 @@
 {% extends 'layout.html' %}
 
 {% block title %}
-    JSON-store :: {{ pagename|title }}
+    JSON-store :: Summary
 {% endblock %}
 
 {% block content %}
-    <h1>JSON-store :: {{ pagename|title }}</h1>
-    <h2>Welcome to the JSON-store administrative and test interface</h2>
+    <div id="keys" class="hidden">
+        This is the full list of the keys present in the store:
+        <ul>
+        {% for item in keys_arr -%}
+            <li>{{ item }}</li>
+        {%- endfor %}
+        </ul>
+    </div>
+    <div id="tags">
+        This is the full list of the tags present in the store:
+        <ul>
+        {% for item in tags_arr %}
+            <li>:: {{ item }}</li>
+        {% endfor %}
+        </ul>
+    </div>
 {% endblock %}
+

@@ -1,17 +1,30 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>{% block title %}JSON-store{% endblock %}</title>
+    <meta charset="utf-8">
+    <title>{% block title %}JSON-store{% endblock %}</title>
 
-  {% block head %}
-  <link href='http://fonts.googleapis.com/css?family=Titillium+Web:300' rel='stylesheet' type='text/css'>
-  <link rel="stylesheet" href="stylesheets/reset.css">
-  <link rel="stylesheet" href="stylesheets/style.css">
-  {% endblock %}
+    {% block head %}
+        <link href='http://fonts.googleapis.com/css?family=Titillium+Web:300' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="stylesheets/reset.css">
+        <link rel="stylesheet" href="stylesheets/style.css">
+    {% endblock %}
 </head>
 <body>
-  {% block content %}{% endblock %}
+    <header>
+        {% block header %}
+            <h1>JSON-store</h1>
+            <h2>Administrative and test interface</h2>
+        {% endblock %}
+    </header>
+    <div id="content">
+        {% block content %}
+            
+        {% endblock %}
+    </div>
+    <footer>
+        Stats :: {{ keys_count }} keys, {{ tags_count }} tags in the store
+    </footer>
 </body>
 </html>
 
