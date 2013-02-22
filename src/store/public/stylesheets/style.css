@@ -9,7 +9,22 @@ header {
     display: block;
     background-color: #89a;
     
-    padding: 1em 0.5em 1.25em 1em;
+    padding: 1em 0.5em 0.65em 1em;
+}
+
+header nav {
+    margin: 1em 0em 0.25em 0em;
+}
+
+header nav .button {
+    display: inline-block;
+    width: auto;
+    
+    color: #d0d0d0;
+    background-color: #789;
+    
+    margin-right: 0.5em;
+    padding: 0.5em;
 }
 
 .hidden {
@@ -35,11 +50,15 @@ h2 {
     margin: 1.5em 0.5em 1.5em 1em;
 }
 
+#content ul {
+    margin: 1em 0em 0em 0.25em;
+}
+
 #content li {
     width: 20%;
     margin: 6px;
     padding: 4px;
-    border-bottom: 2px solid #a88;
+    /* border-left: 2px solid #889; */
 }
 
 footer {

@@ -4,27 +4,39 @@
     <meta charset="utf-8">
     <title>{% block title %}JSON-store{% endblock %}</title>
 
+    <link href='http://fonts.googleapis.com/css?family=Titillium+Web:300' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="stylesheets/reset.css">
+    <link rel="stylesheet" href="stylesheets/style.css">
+    
     {% block head %}
-        <link href='http://fonts.googleapis.com/css?family=Titillium+Web:300' rel='stylesheet' type='text/css'>
-        <link rel="stylesheet" href="stylesheets/reset.css">
-        <link rel="stylesheet" href="stylesheets/style.css">
     {% endblock %}
 </head>
 <body>
     <header>
+        <h1>JSON-store</h1>
+        <h2>Administrative and test interface</h2>
+        
         {% block header %}
-            <h1>JSON-store</h1>
-            <h2>Administrative and test interface</h2>
         {% endblock %}
+        
+        <nav>
+            <a id="tags-nav" class="button" href="#">Tags</a>
+            <a id="keys-nav" class="button" href="#">Keys</a>
+            <div id="subnav">
+                {% block subnav %}
+                {% endblock %}
+            </div>
+        </nav>
     </header>
     <div id="content">
         {% block content %}
-            
         {% endblock %}
     </div>
     <footer>
         Stats :: {{ keys_count }} keys, {{ tags_count }} tags in the store
     </footer>
 </body>
+<script src="javascripts/jquery-1.9.1.js"></script>
+<script src="javascripts/functions.js"></script>
 </html>
 

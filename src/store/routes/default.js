@@ -13,6 +13,23 @@ client.on("error", function (err)
 });
 
 
+if (typeof String.prototype.startsWith != 'function')
+{
+    String.prototype.startsWith = function (str)
+    {
+        return this.slice(0, str.length) == str;
+    };
+}
+
+if (typeof String.prototype.endsWith != 'function')
+{
+    String.prototype.endsWith = function (str)
+    {
+        return this.slice(-str.length) == str;
+    };
+}
+
+
 exports.index = function(req, res)
 {
     client.dbsize(function(err, keys_count)
@@ -28,6 +45,15 @@ exports.index = function(req, res)
             else
             {
                 keys_arr = keys.toString().split(",");
+                keys_arr_filtered = new Array();
+                
+                for (a=b=0; a<keys_arr.length; a++)
+                {
+                    if (!keys_arr[a].startsWith("tags:"))
+                    {
+                        keys_arr_filtered[b++] = keys_arr[a];
+                    }
+                }
             }
             
             client.keys("tags*", function(err, tags_str)
@@ -53,7 +79,7 @@ exports.index = function(req, res)
                 res.render('index', {
                     keys_count: keys_count,
                     tags_count: tags_arr.length,
-                    keys_arr: keys_arr,
+                    keys_arr: keys_arr_filtered,
                     tags_arr: tags_arr
                 });
             });

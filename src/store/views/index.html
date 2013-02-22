@@ -5,15 +5,15 @@
 {% endblock %}
 
 {% block content %}
-    <div id="keys" class="hidden">
+    <div id="keys-cont" class="hidden">
         This is the full list of the keys present in the store:
         <ul>
-        {% for item in keys_arr -%}
+        {% for item in keys_arr %}
             <li>{{ item }}</li>
-        {%- endfor %}
+        {% endfor %}
         </ul>
     </div>
-    <div id="tags">
+    <div id="tags-cont">
         This is the full list of the tags present in the store:
         <ul>
         {% for item in tags_arr %}
