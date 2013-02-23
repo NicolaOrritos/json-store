@@ -5,19 +5,19 @@
 {% endblock %}
 
 {% block content %}
-    <div id="keys-cont" class="hidden">
+    <div id="keys-cont" class="list hidden">
         This is the full list of the keys present in the store:
         <ul>
         {% for item in keys_arr %}
-            <li>{{ item }}</li>
+            <li id="{{ item }}">:: {{ item }}</li>
         {% endfor %}
         </ul>
     </div>
-    <div id="tags-cont">
+    <div id="tags-cont" class="list">
         This is the full list of the tags present in the store:
         <ul>
         {% for item in tags_arr %}
-            <li>:: {{ item }}</li>
+            <li id="tags:{{ item }}">:: {{ item }}</li>
         {% endfor %}
         </ul>
     </div>
