@@ -65,7 +65,7 @@ app.get('/docs/:doc_id', routes.store.getdoc);
 app.get('/docs/:doc_id/metadata', routes.store.getdocmetadata);
 app.get('/docs', routes.store.getdocs);
 app.get('/delete/:doc_id', routes.store.deletedoc);
-app.get('/', routes.default.index);
+app.get('/admin', routes.default.index);
 
 
 // Load all volatiles:
