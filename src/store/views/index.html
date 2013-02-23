@@ -4,11 +4,30 @@
     JSON-store :: Summary
 {% endblock %}
 
+{% block subnav %}
+    <div id="docs-subnav" class="hidden">
+        <a id="bytags-search" class="button" href="#">By tags</a>
+        <a id="byid-search"  class="button" href="#">By ID</a>
+    </div>
+{% endblock %}
+
 {% block content %}
-    <div id="keys-cont" class="list hidden">
-        This is the full list of the keys present in the store:
+    <div id="docs-search" class="hidden">
+        <div id="search-byid" class="hidden">
+            Search a document by its ID:
+            <input id="docs-id-search"></input>
+            <a href="#">&gt;</a>
+        </div>
+        <div id="search-bytags">
+            Search for documents using tags:
+            <input id="docs-tags-search"></input>
+            <a href="#">&gt;</a>
+        </div>
+    </div>
+    <div id="ids-cont" class="list hidden">
+        This is the full list of the documents IDs present in the store:
         <ul>
-        {% for item in keys_arr %}
+        {% for item in ids_arr %}
             <li id="{{ item }}">:: {{ item }}</li>
         {% endfor %}
         </ul>

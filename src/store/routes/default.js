@@ -34,18 +34,18 @@ exports.index = function(req, res)
 {
     client.keys("*", function(err, keys)
     {
-        var keys_arr_filtered = undefined;
+        var ids_arr = undefined;
     
         if (keys)
         {
             var keys_arr = keys.toString().split(",");
-            keys_arr_filtered = new Array();
+            ids_arr = new Array();
             
             for (a=b=0; a<keys_arr.length; a++)
             {
                 if (!keys_arr[a].startsWith("tags:"))
                 {
-                    keys_arr_filtered[b++] = keys_arr[a];
+                    ids_arr[b++] = keys_arr[a];
                 }
             }
         }
@@ -65,9 +65,9 @@ exports.index = function(req, res)
             }
             
             res.render('index', {
-                keys_count: keys_arr_filtered ? keys_arr_filtered.length : "[error retrieving keys from the DB]",
+                ids_count: ids_arr ? ids_arr.length : "[error retrieving documents IDs from the DB]",
                 tags_count: tags_arr ? tags_arr.length : "[error retrieving tags from the DB]",
-                keys_arr: keys_arr_filtered,
+                ids_arr: ids_arr,
                 tags_arr: tags_arr
             });
         });

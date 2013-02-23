@@ -20,8 +20,11 @@
         {% endblock %}
         
         <nav>
-            <a id="tags-nav" class="button" href="#">Tags</a>
-            <a id="keys-nav" class="button" href="#">Keys</a>
+            <div id="mainnav">
+                <a id="tags-nav" class="button" href="#">Tags</a>
+                <a id="ids-nav"  class="button" href="#">IDs</a>
+                <a id="docs-nav" class="button" href="#">Docs</a>
+            </div>
             <div id="subnav">
                 {% block subnav %}
                 {% endblock %}
@@ -33,7 +36,7 @@
         {% endblock %}
     </div>
     <footer>
-        Stats :: {{ keys_count }} keys, {{ tags_count }} tags in the store
+        Stats :: {{ ids_count }} docs, {{ tags_count }} tags in the store
     </footer>
 </body>
 <script src="javascripts/jquery-1.9.1.js"></script>
