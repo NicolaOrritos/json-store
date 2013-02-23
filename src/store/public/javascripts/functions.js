@@ -7,14 +7,14 @@ $(document).ready(function ()
 {
     $("#tags-nav").click(function()
     {
-        $("#content #tags-cont").show("fast");
-        $("#content #keys-cont").hide("fast");
+        $("#content #tags-cont").show();
+        $("#content #keys-cont").hide();
     });
     
     $("#keys-nav").click(function()
     {
-        $("#content #tags-cont").hide("fast");
-        $("#content #keys-cont").show("fast");
+        $("#content #tags-cont").hide();
+        $("#content #keys-cont").show();
     });
 
 });
