@@ -12,18 +12,6 @@
 {% endblock %}
 
 {% block content %}
-    <div id="docs-search" class="hidden">
-        <div id="search-byid" class="hidden">
-            Search a document by its ID:
-            <input id="docs-id-search"></input>
-            <a href="#">&gt;</a>
-        </div>
-        <div id="search-bytags">
-            Search for documents using tags:
-            <input id="docs-tags-search"></input>
-            <a href="#">&gt;</a>
-        </div>
-    </div>
     <div id="ids-cont" class="list hidden">
         This is the full list of the documents IDs present in the store:
         <ul>
@@ -39,6 +27,22 @@
             <li id="tags:{{ item }}">:: {{ item }}</li>
         {% endfor %}
         </ul>
+    </div>
+    <div id="docs-search" class="hidden">
+        <div id="search-byid" class="hidden">
+            Search a document by its ID:
+            <input type="text" name="docs-id-search" placeholder="ID (e.g. 03033bb35bed3bb45509b5e7484fb79fe00c0dcf)"></input>
+            <a href="#">Search</a>
+            <ul class="results">
+            </ul>
+        </div>
+        <div id="search-bytags">
+            Search for documents using tags:
+            <input type="text" name="docs-tags-search" placeholder="Tags (separated by commas)"></input>
+            <a href="#">Search</a>
+            <ul class="results">
+            </ul>
+        </div>
     </div>
 {% endblock %}
 
